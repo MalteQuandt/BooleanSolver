@@ -235,36 +235,9 @@ final class Solver {
         return operandStack.pop();
     }
 
-    public Boolean checkRPN() {
-        Boolean error = false;
-        Integer prevValue = 0;
-        for (Token tok : getRpn()) {
-            if (tok.getType().isBinaryOperator()) {
-                // It is a binary operator:
-                if (prevValue != 2) {
-                    System.out.println("Binary error at: " + tok.getPosition());
-                    error = true;
-                }
-                prevValue -=1;
-            } else if (tok.getType().isValue()) {
-                // It is value:
-                prevValue++;
-            } else {
-                // it is unary operator
-                if (prevValue != 1) {
-                    System.out.println("Unary Error at " + tok.getPosition());
-                    error = true;
-                }
-                prevValue--;
-            }
-        }
-        return error;
-    }
-
     public void solve() {
         tokenize();
        infixToPostfix();
-        if(checkRPN()) System.exit(128);
         printTruthTable();
     }
 }
