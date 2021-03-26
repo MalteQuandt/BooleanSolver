@@ -9,7 +9,8 @@ public enum TokenType {
     VARIABLE,
     LITERAL,
     LPAREN,
-    RPAREN;
+    RPAREN,
+    NIL;
 
     public static HashMap<TokenType, Boolean> getBinaryOp() {
         return binaryOp;

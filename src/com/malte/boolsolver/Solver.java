@@ -13,22 +13,12 @@ final class Solver {
     private ArrayList<Token> variables;
     // The original expression is stored in this:
     private String expression;
+
     // Truth table (only the output column)
-
-
     public Solver(String expression) {
         setExpression(expression);
         setVarmount(0);
         setVariables(new ArrayList<>());
-    }
-
-    private void setTruthTable() {
-        if (tokenlist == null) {
-            return;
-        } else {
-            // TODO:
-            return;
-        }
     }
 
     public void printList() {
@@ -88,6 +78,7 @@ final class Solver {
     public void tokenize() {
         setList(new ArrayList<Token>(32));
         int length = expression.length();
+        Boolean error = false;
         for (int i = 0; i < length; i++) {
             switch (expression.charAt(i)) {
                 case '1':
@@ -122,19 +113,21 @@ final class Solver {
                         i = consumeVar(expression, i);
                     } else {
                         // This is not a valid token!
-                        String errormsg = new String("Illegal Token: " + expression.charAt(i) + " at position " + i);
+                        String errormsg = new String("Illegal Token: " + expression.charAt(i) + " at: " + i);
                         System.out.println(errormsg);
-                        System.exit(265);
+                        error = true;
                     }
                     break;
             }
         }
-        setTruthTable();
+        if(error) System.exit(0);
     }
 
-    public void infixToPostfix() {
+    private void infixToPostfix() {
         ArrayList<Token> out = new ArrayList<>();
         Stack<Token> stack = new Stack<>();
+
+        if(expression.length() == 0) return;
 
         for (Token tok : tokenlist) {
 
@@ -162,6 +155,16 @@ final class Solver {
             out.add(stack.pop());
         }
         setRpn(out);
+    }
+
+    public TreeNode postfixToExprTree() {
+        TreeNode tree = new TreeNode(null);
+        // Converts a simple RPN into an expression tree (Binary tree)
+        for (int i = getRpn().size()-1; i != 0; i--) {
+            // Iterate from the end of the rpn to the start
+            tree.add(getRpn().get(i));
+        }
+        return tree;
     }
 
     public ArrayList<Token> getRpn() {
@@ -193,7 +196,16 @@ final class Solver {
         // Iterate over the boolean combinations that the variables provide:
         for (int i = 0; i < Math.pow(2, this.getVarmount()); i++) {
             System.out.print("" + intToString(i, getVarmount()));
+            // TODO: output the value utilizing the method "solveRPN"
+            System.out.println(" : " + evalRPN(i));
+        }
+    }
 
+    public void printTruthTableWn() {
+        Integer position = 0;
+        // Iterate over the boolean combinations that the variables provide:
+        for (int i = 0; i < Math.pow(2, this.getVarmount()); i++) {
+            System.out.print("" + intToString(i, getVarmount(), 3));
             // TODO: output the value utilizing the method "solveRPN"
             System.out.println(" : " + evalRPN(i));
         }
@@ -209,7 +221,19 @@ final class Solver {
         return result.toString();
     }
 
+    private static String intToString(int number, int variables, int spaces) {
+        StringBuilder result = new StringBuilder();
+
+        for (int i = variables - 1; i >= 0; i--) {
+            int mask = 1 << i;
+            result.append((number & mask) == 0 ? "0" : "1");
+            for(int j = 0; j < spaces; j++) result.append(" ");
+        }
+        return result.toString();
+    }
+
     private Integer evalRPN(Integer position) {
+        if(getRpn() == null) return -1;
         String ttvalues = intToString(position, this.getVarmount());
         Stack<Integer> operandStack = new Stack<>();
         for (Token itr : getRpn()) {
@@ -234,24 +258,26 @@ final class Solver {
         }
         return operandStack.pop();
     }
+
     private Boolean checkRPN() {
         Boolean error = false;
         Integer elemOnStack = 0;
-        for(Token tok : getRpn()) {
-            if(tok.getType().isBinaryOperator()) {
+        if(getRpn() == null) return false;
+        for (Token tok : getRpn()) {
+            if (tok.getType().isBinaryOperator()) {
                 // Is binary operator:
-                if(elemOnStack < 2) {
+                if (elemOnStack < 2) {
                     // There are not enough items on the stack to do the operation:
                     error = true;
                     System.out.println("Expression error: Not enough operands for binary operation at " + tok.getPosition());
                 }
                 elemOnStack--;
-            } else if(tok.getType().isValue()) {
+            } else if (tok.getType().isValue()) {
                 // Is value like literal/variable:
                 elemOnStack++;
             } else {
                 // Is unary operator:
-                if(elemOnStack==0) {
+                if (elemOnStack == 0) {
                     // There is not an element on the stack which this operation can use:
                     error = true;
                     System.out.println("Expression error: Not enough operands for unary operation at " + tok.getPosition());
@@ -261,10 +287,11 @@ final class Solver {
         }
         return error;
     }
+
     public void eval() {
         tokenize();
         infixToPostfix();
-        if(checkRPN()) System.exit(128);
+        if (checkRPN()) System.exit(0);
         printTruthTable();
     }
 }
