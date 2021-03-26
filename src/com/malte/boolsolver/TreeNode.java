@@ -53,7 +53,7 @@ public class TreeNode {
      * @return predicate indicating whether the adding was successful:
      */
     public Boolean add(Token value) {
-    return false;
+        return false;
     }
     public void print() {
         if(this.getLeft() != null) {
