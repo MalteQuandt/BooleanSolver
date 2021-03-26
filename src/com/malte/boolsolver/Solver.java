@@ -234,10 +234,37 @@ final class Solver {
         }
         return operandStack.pop();
     }
+    private Boolean checkRPN() {
+        Boolean error = false;
+        Integer elemOnStack = 0;
+        for(Token tok : getRpn()) {
+            if(tok.getType().isBinaryOperator()) {
+                // Is binary operator:
+                if(elemOnStack < 2) {
+                    // There are not enough items on the stack to do the operation:
+                    error = true;
+                    System.out.println("Expression error: Not enough operands for binary operation at " + tok.getPosition());
+                }
+                elemOnStack--;
+            } else if(tok.getType().isValue()) {
+                // Is value like literal/variable:
+                elemOnStack++;
+            } else {
+                // Is unary operator:
+                if(elemOnStack==0) {
+                    // There is not an element on the stack which this operation can use:
+                    error = true;
+                    System.out.println("Expression error: Not enough operands for unary operation at " + tok.getPosition());
+                }
+            }
 
-    public void solve() {
+        }
+        return error;
+    }
+    public void eval() {
         tokenize();
-       infixToPostfix();
+        infixToPostfix();
+        if(checkRPN()) System.exit(128);
         printTruthTable();
     }
 }
