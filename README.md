@@ -16,6 +16,14 @@ The reward: Nothing!
 
 
 ```ebnf
-EXP := TERM { OR TERM }*
-TERM := VALUE | VALUE {AND VALUE}* | NOT VALUE
+EXP    := TERM {OR TERM}
+TERM   := FACTOR {AND FACTOR}
+FACTOR := VALUE
+FACTOR := NOT FACTOR
+FACTOR := LPAREN EXP RPAREN
+VALUE  := TRUE | FALSE | VARIABLE
+```
+Variable is just a simple c-like identifier described with:
+```
+[_a-zA-Z][_a-zA-Z0-9]{0,30}
 ```
