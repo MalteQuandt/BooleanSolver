@@ -45,7 +45,7 @@ final class BoolSolver {
     }
 
     //Consume a variable:
-    public int consumeVar(String expression, int position) {
+    private int consumeVar(String expression, int position) {
         Integer skip = position;
         Integer varPos = this.getVarmount();
         Token tempora = null;
@@ -76,7 +76,7 @@ final class BoolSolver {
         tokenlist.add(new OperatorToken(type, Character.toString(digit), position));
     }
 
-    public Boolean tokenize() {
+    private Boolean tokenize() {
         setList(new ArrayList<Token>(32));
         int length = expression.length();
         Boolean error = false;
@@ -136,7 +136,7 @@ final class BoolSolver {
      * Simple shunting-yard implementation, which converts a boolean expression in infix-notation
      * into reverse polish notation, or postfix.
      */
-    public void infixToPostfix() {
+    private void infixToPostfix() {
         ArrayList<Token> out = new ArrayList<>();
         Stack<Token> stack = new Stack<>();
 
@@ -173,7 +173,7 @@ final class BoolSolver {
         setRpn(out);
     }
 
-    public ExpressionTree postfixToExprTree() {
+    private ExpressionTree postfixToExprTree() {
         if (this.getRpn() == null) {
             return null;
         }
@@ -228,18 +228,7 @@ final class BoolSolver {
         return result.toString();
     }
 
-    private static String intToString(int number, int variables, int spaces) {
-        StringBuilder result = new StringBuilder();
-
-        for (int i = variables - 1; i >= 0; i--) {
-            int mask = 1 << i;
-            result.append((number & mask) == 0 ? "0" : "1");
-            for (int j = 0; j < spaces; j++) result.append(" ");
-        }
-        return result.toString();
-    }
-
-    public Integer solveTree(Node tree, String positionstring) {
+    private Integer solveTree(Node tree, String positionstring) {
         if (checkTree(tree)) System.exit(0);
         if (tree != null) {
             switch (tree.getType()) {
@@ -256,11 +245,6 @@ final class BoolSolver {
             }
         }
         return null;
-    }
-
-    public Boolean checkTree(Node root) {
-        Boolean error = false;
-        return error;
     }
 
     private Integer evalRPN(Integer position) {
@@ -337,6 +321,10 @@ final class BoolSolver {
     public ExpressionTree simplify(ExpressionTree expression) {
         ExpressionTree simp = new ExpressionTree();
         return simp;
+    }
+    private Boolean checkTree(Node root) {
+        Boolean error = false;
+        return error;
     }
 }
 
