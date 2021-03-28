@@ -1,27 +1,25 @@
 # How to use:
 
-To use the solver in its current state, you declare a string which contains a valid boolean expression ,which
-is constructred with a combination of parenthesis, AND, OR and NOT operations and literals/variables.
+To use the solver in its current state, you declare a string which contains a valid boolean expression (See the EBNF down below).
 Then you can create the object like so:
 
 ```java
 BoolSolver identifier = new BoolSolver(stringExpression);
 ```
 
-This should print a truth table to the console with the variables that were in the string from left to right being outputted in the truth table from right to left.
+This should print a truth table to the console with the variables that were in the string from left to right being output in the truth table in the opposite order.
 
 ### Challenge:
 Try to break this algorithm! Use the rules of boolean expressions to find one that is 1. valid, and 2. my code does not handle in any correct way.
-The reward: Nothing!
 
 
 ```ebnf
-EXP    := TERM {OR TERM}
-TERM   := FACTOR {AND FACTOR}
+EXP    := TERM {'+' TERM}
+TERM   := FACTOR {'*' FACTOR}
 FACTOR := VALUE
-FACTOR := NOT FACTOR
-FACTOR := LPAREN EXP RPAREN
-VALUE  := TRUE | FALSE | VARIABLE
+FACTOR := '!' FACTOR
+FACTOR := '(' EXP ')'
+VALUE  := 1 | 0 | VARIABLE
 ```
 Variable is just a simple c-like identifier described with:
 ```
