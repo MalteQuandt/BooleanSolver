@@ -3,7 +3,7 @@ package com.malte.boolsolver;
 import java.util.ArrayList;
 import java.util.Stack;
 
-final class Solver {
+final class BoolSolver {
     // List of tokens:
     private ArrayList<Token> tokenlist;
     private ArrayList<Token> rpn;
@@ -15,10 +15,11 @@ final class Solver {
     private String expression;
 
     // Truth table (only the output column)
-    public Solver(String expression) {
+    public BoolSolver(String expression) {
         setExpression(expression);
         setVarmount(0);
         setVariables(new ArrayList<>());
+        eval();
     }
 
     public void printList() {
@@ -67,15 +68,15 @@ final class Solver {
     }
 
     // Consume a literal:
-    public void consumeLit(Character digit, TokenType type, Integer position) {
+    private void consumeLit(Character digit, TokenType type, Integer position) {
         getList().add(new OperandToken(type, Character.toString(digit), position));
     }
 
-    public void consume(Character digit, TokenType type, Integer position) {
+    private void consume(Character digit, TokenType type, Integer position) {
         tokenlist.add(new OperatorToken(type, Character.toString(digit), position));
     }
 
-    public void tokenize() {
+    public Boolean tokenize() {
         setList(new ArrayList<Token>(32));
         int length = expression.length();
         Boolean error = false;
@@ -87,21 +88,29 @@ final class Solver {
                     consumeLit(expression.charAt(i), TokenType.LITERAL, i);
                     break;
                 case '&':
+                case '*':
                     consume(expression.charAt(i), TokenType.AND, i);
                     break;
                 case '|':
+                case '+':
                     consume(expression.charAt(i), TokenType.OR, i);
                     break;
                 case '!':
                     consume(expression.charAt(i), TokenType.NOT, i);
                     break;
                 case '(':
+                case '[':
+                case '{':
                     consume(expression.charAt(i), TokenType.LPAREN, i);
                     break;
                 case ')':
+                case '}':
+                case ']':
                     consume(expression.charAt(i), TokenType.RPAREN, i);
                     break;
                 case ' ':
+                case '\r':
+                case '\n':
                     // Skip this character as it is just a delimiter.
                     continue;
                 case '_':
@@ -120,22 +129,29 @@ final class Solver {
                     break;
             }
         }
-        if(error) System.exit(0);
+        return error;
     }
 
-    private void infixToPostfix() {
+    /**
+     * Simple shunting-yard implementation, which converts a boolean expression in infix-notation
+     * into reverse polish notation, or postfix.
+     */
+    public void infixToPostfix() {
         ArrayList<Token> out = new ArrayList<>();
         Stack<Token> stack = new Stack<>();
 
-        if(expression.length() == 0) return;
+        if (expression.length() == 0) return;
 
         for (Token tok : tokenlist) {
-
-            if (tok.getType().isOperator()) {
+            if (tok.getType().isBinaryOperator()) {
                 // operator:
                 while (!stack.isEmpty() && (!stack.peek().getType().isParen() && ((OperatorToken) tok).isHigherPrecedenceThan((OperatorToken) stack.peek()))) {
-                    out.add(stack.pop());
+                    Token temp = stack.pop();
+                    out.add(temp);
                 }
+                stack.push(tok);
+
+            } else if (tok.getType().isUnaryOperator()) {
                 stack.push(tok);
             } else if (tok.getType().isLeftParen()) {
                 // Left parenthesis:
@@ -157,11 +173,12 @@ final class Solver {
         setRpn(out);
     }
 
-    public TreeNode postfixToExprTree() {
-        TreeNode tree = new TreeNode(null);
-        // Converts a simple RPN into an expression tree (Binary tree)
-        for (int i = getRpn().size()-1; i != 0; i--) {
-            // Iterate from the end of the rpn to the start
+    public ExpressionTree postfixToExprTree() {
+        if (this.getRpn() == null) {
+            return null;
+        }
+        ExpressionTree tree = new ExpressionTree();
+        for (int i = this.getRpn().size() - 1; i >= 0; i--) {
             tree.add(getRpn().get(i));
         }
         return tree;
@@ -187,7 +204,7 @@ final class Solver {
         return variables;
     }
 
-    public void setVariables(ArrayList<Token> variables) {
+    private void setVariables(ArrayList<Token> variables) {
         this.variables = variables;
     }
 
@@ -201,17 +218,7 @@ final class Solver {
         }
     }
 
-    public void printTruthTableWn() {
-        Integer position = 0;
-        // Iterate over the boolean combinations that the variables provide:
-        for (int i = 0; i < Math.pow(2, this.getVarmount()); i++) {
-            System.out.print("" + intToString(i, getVarmount(), 3));
-            // TODO: output the value utilizing the method "solveRPN"
-            System.out.println(" : " + evalRPN(i));
-        }
-    }
-
-    private static String intToString(int number, int variables) {
+    public static String intToString(int number, int variables) {
         StringBuilder result = new StringBuilder();
 
         for (int i = variables - 1; i >= 0; i--) {
@@ -227,13 +234,37 @@ final class Solver {
         for (int i = variables - 1; i >= 0; i--) {
             int mask = 1 << i;
             result.append((number & mask) == 0 ? "0" : "1");
-            for(int j = 0; j < spaces; j++) result.append(" ");
+            for (int j = 0; j < spaces; j++) result.append(" ");
         }
         return result.toString();
     }
 
+    public Integer solveTree(Node tree, String positionstring) {
+        if (checkTree(tree)) System.exit(0);
+        if (tree != null) {
+            switch (tree.getType()) {
+                case VARIABLE:
+                    return (positionstring.charAt(((OperandToken) tree.getToken()).getVariablePosition())) == 48 ? 0 : 1;
+                case LITERAL:
+                    return Integer.parseInt(((OperandToken) tree.getToken()).getValue());
+                case AND:
+                    return solveTree(tree.getRight(), positionstring) & solveTree(tree.getLeft(), positionstring);
+                case OR:
+                    return solveTree(tree.getRight(), positionstring) | solveTree(tree.getLeft(), positionstring);
+                case NOT:
+                    return solveTree(tree.getRight(), positionstring);
+            }
+        }
+        return null;
+    }
+
+    public Boolean checkTree(Node root) {
+        Boolean error = false;
+        return error;
+    }
+
     private Integer evalRPN(Integer position) {
-        if(getRpn() == null) return -1;
+        if (getRpn() == null) return -1;
         String ttvalues = intToString(position, this.getVarmount());
         Stack<Integer> operandStack = new Stack<>();
         for (Token itr : getRpn()) {
@@ -262,14 +293,16 @@ final class Solver {
     private Boolean checkRPN() {
         Boolean error = false;
         Integer elemOnStack = 0;
-        if(getRpn() == null) return false;
+        if (getRpn() == null) return false;
         for (Token tok : getRpn()) {
             if (tok.getType().isBinaryOperator()) {
                 // Is binary operator:
+                // Error at this token:
                 if (elemOnStack < 2) {
                     // There are not enough items on the stack to do the operation:
                     error = true;
                     System.out.println("Expression error: Not enough operands for binary operation at " + tok.getPosition());
+                    System.out.println("Stack only has " + elemOnStack + " element(s)");
                 }
                 elemOnStack--;
             } else if (tok.getType().isValue()) {
@@ -281,6 +314,7 @@ final class Solver {
                     // There is not an element on the stack which this operation can use:
                     error = true;
                     System.out.println("Expression error: Not enough operands for unary operation at " + tok.getPosition());
+                    System.out.println("Stack only has " + elemOnStack + " element(s)");
                 }
             }
 
@@ -288,11 +322,21 @@ final class Solver {
         return error;
     }
 
-    public void eval() {
-        tokenize();
+    private void eval() {
+        if (tokenize()) System.exit(0);
         infixToPostfix();
         if (checkRPN()) System.exit(0);
         printTruthTable();
+    }
+
+    public ExpressionTree infixToAst() {
+        ExpressionTree tree = new ExpressionTree();
+        return tree;
+    }
+
+    public ExpressionTree simplify(ExpressionTree expression) {
+        ExpressionTree simp = new ExpressionTree();
+        return simp;
     }
 }
 

@@ -7,6 +7,8 @@ public interface Token<V> {
 
     public Integer getPosition();
 
+    public Boolean equals(Token token);
+
     public String toString();
 }
 
@@ -25,6 +27,11 @@ class OperandToken implements Token<String> {
     public OperandToken(TokenType type, String value, Integer position, Integer varPos) {
         this(type, value, position);
         setVariablePosition(varPos);
+    }
+
+    @Override
+    public Boolean equals(Token token) {
+        return token instanceof OperandToken && token.getType() == getType() && token.getPosition().intValue() == getPosition().intValue() && getValue().equals(token.getValue());
     }
 
     @Override
@@ -75,6 +82,11 @@ class OperatorToken implements Token<TokenType> {
     public OperatorToken(TokenType type, String value, Integer position) {
         setType(type);
         setPosition(position);
+    }
+
+    @Override
+    public Boolean equals(Token token) {
+        return token instanceof OperatorToken && token.getType() == getType() && token.getPosition().intValue() == getPosition().intValue() && token.getValue().equals(getValue());
     }
 
     @Override

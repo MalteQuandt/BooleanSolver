@@ -58,11 +58,15 @@ public enum TokenType {
     }};
 
     public Boolean isBinaryOperator() {
-        return TokenType.getBinaryOp().containsKey(this);
+        if (isOperator() && TokenType.getBinaryOp().containsKey(this)) {
+            return TokenType.binaryOp.get(this);
+        } else {
+            return false;
+        }
     }
 
     public Boolean isUnaryOperator() {
-        return !isBinaryOperator();
+        return isOperator() && !isBinaryOperator();
     }
 
     public Boolean isRightAssociative() {
@@ -75,5 +79,13 @@ public enum TokenType {
 
     public Boolean isValue() {
         return this == LITERAL || this == VARIABLE;
+    }
+
+    public Boolean isTerminal() {
+        return this.isValue();
+    }
+
+    public Boolean isNonTerminal() {
+        return this.isBinaryOperator() || this.isUnaryOperator();
     }
 }
