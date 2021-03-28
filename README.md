@@ -13,3 +13,9 @@ This should print a truth table to the console with the variables that were in t
 ### Challenge:
 Try to break this algorithm! Use the rules of boolean expressions to find one that is 1. valid, and 2. my code does not handle in any correct way.
 The reward: Nothing!
+
+
+```ebnf
+EXP := TERM { OR TERM }*
+TERM := VALUE | VALUE {AND VALUE}* | NOT VALUE
+```
