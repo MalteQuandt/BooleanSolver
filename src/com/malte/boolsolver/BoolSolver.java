@@ -2,6 +2,7 @@ package com.malte.boolsolver;
 
 import java.sql.SQLOutput;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Stack;
 
 final class BoolSolver {
@@ -21,6 +22,9 @@ final class BoolSolver {
         setVarmount(0);
         setVariables(new ArrayList<Token>());
         eval();
+    }
+    public BoolSolver() {
+        // Literally nothing to be done here!
     }
 
     public void printList() {
@@ -58,12 +62,13 @@ final class BoolSolver {
         for (Token tok : getList()) {
             if (temp.equals(tok.getValue())) {
                 varPos = ((OperandToken) tok).getVariablePosition();
-                getList().add(tempora = new OperandToken(TokenType.VARIABLE, temp, position, varPos));
+
                 exists = true;
             }
         }
         tempora = new OperandToken(TokenType.VARIABLE, temp, position, varPos);
         if(exists) {
+            getList().add(tempora);
             return skip -1;
         } else {
             // The variable is not in the list yet, thus we add it
@@ -78,6 +83,27 @@ final class BoolSolver {
     // Consume a literal:
     private void consumeLit(Character digit, TokenType type, Integer position) {
         getList().add(new OperandToken(type, Character.toString(digit), position));
+    }
+
+    private Boolean consumeLong(String expression, String match, TokenType type, Integer position) {
+        // Use a simple 1-character lookahead:
+        if(position == (expression.length()-match.length())) {
+            // A lookahead is simply not possible, as there are no further characters in the expression-string,
+            // thus we simply return false here.
+            return false;
+        } else {
+            if(match.equals(expression.substring(position, match.length()-1))) {
+                // It does match, thus we can just create the token and get one with our day:
+                // TODO: if i ever plan on fully implementing this method, then i have to implement the token
+                // creation process / token insertion process here and insert a new tokentype into the tokentype
+                // enum
+
+                return true;
+            } else {
+                // It does not match:
+                return false;
+            }
+        }
     }
 
     private void consume(Character digit, TokenType type, Integer position) {
@@ -104,6 +130,7 @@ final class BoolSolver {
                     consume(expression.charAt(i), TokenType.OR, i);
                     break;
                 case '!':
+                case '-':
                     consume(expression.charAt(i), TokenType.NOT, i);
                     break;
                 case '(':
@@ -218,21 +245,13 @@ final class BoolSolver {
     public void printTruthTable() {
         Integer position = 0;
         Integer varPos = 0;
-        for(Token temp : getList()) {
-            if(temp.getType().equals(TokenType.VARIABLE) && ((OperandToken)temp).getVariablePosition()>=varPos) {
-                System.out.print(temp.getValue() + " ");
-                varPos++;
-            }
-            if(temp instanceof OperandToken && (((OperandToken) temp).getVariablePosition()==(this.getVarmount()-1))) {
-                break;
-            }
+        for(Token temp : getVariables()) {
+            System.out.print(temp.getValue() + " ");
         }
         System.out.println(" : %");
-
         // Iterate over the boolean combinations that the variables provide:
         for (int i = 0; i < Math.pow(2, this.getVarmount()); i++) {
             System.out.print("" + this.varString(i, getVarmount()));
-            // TODO: output the value utilizing the method "solveRPN"
             System.out.println(" : " + evalRPN(i));
         }
     }
@@ -247,12 +266,12 @@ final class BoolSolver {
         return result.toString();
     }
 
-    public String varString(int number, int variables) {
+    private String varString(int number, int variables) {
         StringBuilder result = new StringBuilder();
-        for (int i = 0; i <variables; i++) {
+        for (int i = variables-1; i >=0; i--) {
             int mask = 1 << i;
             result.append((number & mask) == 0 ? "0" : "1");
-            for(int j = 0; j < (((OperandToken)getVariables().get(i)).getValue()).length(); j++) {
+            for(int j = 0; j < (((OperandToken)getVariables().get(BoolSolver.oppositeInRange(0, variables-1, i))).getValue()).length(); j++) {
                 result.append(" ");
             }
         }
@@ -260,7 +279,6 @@ final class BoolSolver {
     }
 
     private Integer solveTree(Node tree, String positionstring) {
-        if (checkTree(tree)) System.exit(0);
         if (tree != null) {
             switch (tree.getType()) {
                 case VARIABLE:
@@ -343,31 +361,22 @@ final class BoolSolver {
         if (checkRPN()) System.exit(0);
         printTruthTable();
     }
-
-    public ExpressionTree infixToAst() {
-        ExpressionTree tree = new ExpressionTree();
-        // TODO: implement a way to convert a token stream (array list of tokens) to an expression tree
-        Stack<Token> stack = new Stack<>();
-
-        if (expression.length() == 0) return null;
-
-        for (Token tok : getList()) {
-
-        }
-        return tree;
-    }
-    private void consumeLong(String expression, TokenType type, Integer position) {
-        // TODO: implement a way to write implication, logical equivalence and so forth
+    public void eval(String expression) {
+        // Initialization phase:
+        setExpression(expression);
+        setVarmount(0);
+        setVariables(new ArrayList<Token>());
+        // evalutate it:
+        eval();
     }
     public ExpressionTree simplify(ExpressionTree expression) {
         ExpressionTree simp = new ExpressionTree();
         // TODO: implement an algorithm to simplify a given expression tree:
         return simp;
     }
-    private Boolean checkTree(Node root) {
-        Boolean error = false;
-        // TODO: implement an algorithm to check a given expression tree
-        return error;
+
+    private static int oppositeInRange(Integer start, Integer stop, Integer position) {
+        return (stop+start)-position;
     }
 }
 
