@@ -1,5 +1,6 @@
 package com.malte.boolsolver;
 
+import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.Stack;
 
@@ -9,7 +10,7 @@ final class BoolSolver {
     private ArrayList<Token> rpn;
     // How many variables are in the list:
     private Integer varmount;
-    // Points to the token:
+    // Points to the tokens with the variables in them:
     private ArrayList<Token> variables;
     // The original expression is stored in this:
     private String expression;
@@ -18,7 +19,7 @@ final class BoolSolver {
     public BoolSolver(String expression) {
         setExpression(expression);
         setVarmount(0);
-        setVariables(new ArrayList<>());
+        setVariables(new ArrayList<Token>());
         eval();
     }
 
@@ -49,19 +50,26 @@ final class BoolSolver {
         Integer skip = position;
         Integer varPos = this.getVarmount();
         Token tempora = null;
+        Boolean exists = false;
         for (Integer itr = position; (expression.length() != itr) && (Character.isLetter(expression.charAt(itr)) || (expression.charAt(itr) == '_') || (Character.isDigit(expression.charAt(itr)))); itr++) {
             skip++;
         }
         String temp = expression.substring(position, skip);
         for (Token tok : getList()) {
-            if (tok.getValue().equals(temp)) {
+            if (temp.equals(tok.getValue())) {
                 varPos = ((OperandToken) tok).getVariablePosition();
                 getList().add(tempora = new OperandToken(TokenType.VARIABLE, temp, position, varPos));
-                getVariables().add(tempora);
-                return skip - 1;
+                exists = true;
             }
         }
-        getList().add(new OperandToken(TokenType.VARIABLE, temp, position, varPos));
+        tempora = new OperandToken(TokenType.VARIABLE, temp, position, varPos);
+        if(exists) {
+            return skip -1;
+        } else {
+            // The variable is not in the list yet, thus we add it
+            getVariables().add(tempora);
+        }
+        getList().add(tempora);
         // Increment varmount:
         setVarmount(getVarmount() + 1);
         return skip - 1;
@@ -142,7 +150,7 @@ final class BoolSolver {
 
         if (expression.length() == 0) return;
 
-        for (Token tok : tokenlist) {
+        for (Token tok : getList()) {
             if (tok.getType().isBinaryOperator()) {
                 // operator:
                 while (!stack.isEmpty() && (!stack.peek().getType().isParen() && ((OperatorToken) tok).isHigherPrecedenceThan((OperatorToken) stack.peek()))) {
@@ -150,7 +158,6 @@ final class BoolSolver {
                     out.add(temp);
                 }
                 stack.push(tok);
-
             } else if (tok.getType().isUnaryOperator()) {
                 stack.push(tok);
             } else if (tok.getType().isLeftParen()) {
@@ -210,9 +217,21 @@ final class BoolSolver {
 
     public void printTruthTable() {
         Integer position = 0;
+        Integer varPos = 0;
+        for(Token temp : getList()) {
+            if(temp.getType().equals(TokenType.VARIABLE) && ((OperandToken)temp).getVariablePosition()>=varPos) {
+                System.out.print(temp.getValue() + " ");
+                varPos++;
+            }
+            if(temp instanceof OperandToken && (((OperandToken) temp).getVariablePosition()==(this.getVarmount()-1))) {
+                break;
+            }
+        }
+        System.out.println(" : %");
+
         // Iterate over the boolean combinations that the variables provide:
         for (int i = 0; i < Math.pow(2, this.getVarmount()); i++) {
-            System.out.print("" + intToString(i, getVarmount()));
+            System.out.print("" + this.varString(i, getVarmount()));
             // TODO: output the value utilizing the method "solveRPN"
             System.out.println(" : " + evalRPN(i));
         }
@@ -224,6 +243,18 @@ final class BoolSolver {
         for (int i = variables - 1; i >= 0; i--) {
             int mask = 1 << i;
             result.append((number & mask) == 0 ? "0" : "1");
+        }
+        return result.toString();
+    }
+
+    public String varString(int number, int variables) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i <variables; i++) {
+            int mask = 1 << i;
+            result.append((number & mask) == 0 ? "0" : "1");
+            for(int j = 0; j < (((OperandToken)getVariables().get(i)).getValue()).length(); j++) {
+                result.append(" ");
+            }
         }
         return result.toString();
     }
@@ -315,15 +346,27 @@ final class BoolSolver {
 
     public ExpressionTree infixToAst() {
         ExpressionTree tree = new ExpressionTree();
+        // TODO: implement a way to convert a token stream (array list of tokens) to an expression tree
+        Stack<Token> stack = new Stack<>();
+
+        if (expression.length() == 0) return null;
+
+        for (Token tok : getList()) {
+
+        }
         return tree;
     }
-
+    private void consumeLong(String expression, TokenType type, Integer position) {
+        // TODO: implement a way to write implication, logical equivalence and so forth
+    }
     public ExpressionTree simplify(ExpressionTree expression) {
         ExpressionTree simp = new ExpressionTree();
+        // TODO: implement an algorithm to simplify a given expression tree:
         return simp;
     }
     private Boolean checkTree(Node root) {
         Boolean error = false;
+        // TODO: implement an algorithm to check a given expression tree
         return error;
     }
 }
