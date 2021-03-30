@@ -1,5 +1,7 @@
 package com.malte.boolsolver;
 
+import java.io.*;
+import java.nio.Buffer;
 import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -9,6 +11,8 @@ final class BoolSolver {
     // List of tokens:
     private ArrayList<Token> tokenlist;
     private ArrayList<Token> rpn;
+    private ArrayList<Integer> minterms;
+    private ArrayList<Integer> maxterms;
     // How many variables are in the list:
     private Integer varmount;
     // Points to the tokens with the variables in them:
@@ -18,9 +22,7 @@ final class BoolSolver {
 
     // Truth table (only the output column)
     public BoolSolver(String expression) {
-        setExpression(expression);
-        setVarmount(0);
-        setVariables(new ArrayList<Token>());
+        init(expression);
         eval();
     }
     public BoolSolver() {
@@ -207,7 +209,7 @@ final class BoolSolver {
         setRpn(out);
     }
 
-    private ExpressionTree postfixToExprTree() {
+    public ExpressionTree postfixToExprTree() {
         if (this.getRpn() == null) {
             return null;
         }
@@ -234,6 +236,22 @@ final class BoolSolver {
         this.varmount = varmount;
     }
 
+    public ArrayList<Integer> getMinterms() {
+        return minterms;
+    }
+
+    public void setMinterms(ArrayList<Integer> minterms) {
+        this.minterms = minterms;
+    }
+
+    public ArrayList<Integer> getMaxterms() {
+        return maxterms;
+    }
+
+    public void setMaxterms(ArrayList<Integer> maxterms) {
+        this.maxterms = maxterms;
+    }
+
     public ArrayList<Token> getVariables() {
         return variables;
     }
@@ -254,6 +272,22 @@ final class BoolSolver {
             System.out.print("" + this.varString(i, getVarmount()));
             System.out.println(" : " + evalRPN(i));
         }
+    }
+
+    public String truthTableToString() {
+        StringBuilder sb = new StringBuilder(16);
+        Integer position = 0;
+        Integer varPos = 0;
+        for(Token temp : getVariables()) {
+            sb.append(temp.getValue() + " ");
+        }
+        sb.append(" : %\n");
+        // Iterate over the boolean combinations that the variables provide:
+        for (int i = 0; i < Math.pow(2, this.getVarmount()); i++) {
+            sb.append("" + this.varString(i, getVarmount()));
+            sb.append(" : " + evalRPN(i) + "\n");
+        }
+        return sb.toString();
     }
 
     public static String intToString(int number, int variables) {
@@ -298,6 +332,7 @@ final class BoolSolver {
 
     private Integer evalRPN(Integer position) {
         if (getRpn() == null) return -1;
+        Integer result = -1;
         String ttvalues = intToString(position, this.getVarmount());
         Stack<Integer> operandStack = new Stack<>();
         for (Token itr : getRpn()) {
@@ -320,7 +355,13 @@ final class BoolSolver {
                     break;
             }
         }
-        return operandStack.pop();
+        result = operandStack.pop();
+        if(result==1) {
+            getMinterms().add(position);
+        } else {
+            getMaxterms().add(position);
+        }
+        return result;
     }
 
     private Boolean checkRPN() {
@@ -355,6 +396,10 @@ final class BoolSolver {
         return error;
     }
 
+    private static int oppositeInRange(Integer start, Integer stop, Integer position) {
+        return (stop+start)-position;
+    }
+
     private void eval() {
         if (tokenize()) System.exit(0);
         infixToPostfix();
@@ -363,20 +408,55 @@ final class BoolSolver {
     }
     public void eval(String expression) {
         // Initialization phase:
-        setExpression(expression);
-        setVarmount(0);
-        setVariables(new ArrayList<Token>());
+        init(expression);
         // evalutate it:
         eval();
     }
-    public ExpressionTree simplify(ExpressionTree expression) {
-        ExpressionTree simp = new ExpressionTree();
-        // TODO: implement an algorithm to simplify a given expression tree:
-        return simp;
+
+    private void init(String expression) {
+        setExpression(expression);
+        setVarmount(0);
+        setVariables(new ArrayList<Token>());
+        setMaxterms(new ArrayList<Integer>());
+        setMinterms(new ArrayList<Integer>());
+    }
+    public String eval(String expression, String name) {
+        init(expression);
+        if (tokenize()) System.exit(0);
+        infixToPostfix();
+        if (checkRPN()) System.exit(0);
+        String temp = truthTableToString();
+        Writer writer = null;
+        try {
+            writer = new BufferedWriter(new OutputStreamWriter(
+                    new FileOutputStream(name + ".tt"), "utf-8"));
+            writer.write(temp);
+        } catch(IOException ioe) {
+            System.out.println("The system could not write to " + name + ".tt");
+        } finally {
+            try {
+                writer.close();
+            } catch(Exception ex) {
+            }
+        }
+        return temp;
+    }
+    public ArrayList<Token> printInfixTreeWP() {
+        return null;
     }
 
-    private static int oppositeInRange(Integer start, Integer stop, Integer position) {
-        return (stop+start)-position;
+    public String simplify(String expression) {
+        return null;
+    }
+    public String simplify() {
+        StringBuilder expression = new StringBuilder(16);
+        if(getVariables().size()==0) {
+            // Only literals, thus we just calculate the value and spit it out:
+        } else {
+            // There are variables, thus we use quine-mcclusky to solve this:
+
+        }
+        return expression.toString();
     }
 }
 
