@@ -1,5 +1,7 @@
 package com.malte.boolsolver;
 
+import java.util.HashMap;
+
 public class ExpressionTree {
     private Node root;
 

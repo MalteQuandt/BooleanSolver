@@ -1,11 +1,7 @@
 package com.malte.boolsolver;
 
 import java.io.*;
-import java.nio.Buffer;
-import java.sql.SQLOutput;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Stack;
+import java.util.*;
 
 final class BoolSolver {
     // List of tokens:
@@ -25,6 +21,12 @@ final class BoolSolver {
         init(expression);
         eval();
     }
+
+    public BoolSolver(String expression, String filename) {
+        init(expression);
+        eval(expression, filename);
+    }
+
     public BoolSolver() {
         // Literally nothing to be done here!
     }
@@ -69,9 +71,9 @@ final class BoolSolver {
             }
         }
         tempora = new OperandToken(TokenType.VARIABLE, temp, position, varPos);
-        if(exists) {
+        if (exists) {
             getList().add(tempora);
-            return skip -1;
+            return skip - 1;
         } else {
             // The variable is not in the list yet, thus we add it
             getVariables().add(tempora);
@@ -89,12 +91,12 @@ final class BoolSolver {
 
     private Boolean consumeLong(String expression, String match, TokenType type, Integer position) {
         // Use a simple 1-character lookahead:
-        if(position == (expression.length()-match.length())) {
+        if (position == (expression.length() - match.length())) {
             // A lookahead is simply not possible, as there are no further characters in the expression-string,
             // thus we simply return false here.
             return false;
         } else {
-            if(match.equals(expression.substring(position, match.length()-1))) {
+            if (match.equals(expression.substring(position, match.length() - 1))) {
                 // It does match, thus we can just create the token and get one with our day:
                 // TODO: if i ever plan on fully implementing this method, then i have to implement the token
                 // creation process / token insertion process here and insert a new tokentype into the tokentype
@@ -263,7 +265,7 @@ final class BoolSolver {
     public void printTruthTable() {
         Integer position = 0;
         Integer varPos = 0;
-        for(Token temp : getVariables()) {
+        for (Token temp : getVariables()) {
             System.out.print(temp.getValue() + " ");
         }
         System.out.println(" : %");
@@ -278,7 +280,7 @@ final class BoolSolver {
         StringBuilder sb = new StringBuilder(16);
         Integer position = 0;
         Integer varPos = 0;
-        for(Token temp : getVariables()) {
+        for (Token temp : getVariables()) {
             sb.append(temp.getValue() + " ");
         }
         sb.append(" : %\n");
@@ -302,10 +304,10 @@ final class BoolSolver {
 
     private String varString(int number, int variables) {
         StringBuilder result = new StringBuilder();
-        for (int i = variables-1; i >=0; i--) {
+        for (int i = variables - 1; i >= 0; i--) {
             int mask = 1 << i;
             result.append((number & mask) == 0 ? "0" : "1");
-            for(int j = 0; j < (((OperandToken)getVariables().get(BoolSolver.oppositeInRange(0, variables-1, i))).getValue()).length(); j++) {
+            for (int j = 0; j < (((OperandToken) getVariables().get(BoolSolver.oppositeInRange(0, variables - 1, i))).getValue()).length(); j++) {
                 result.append(" ");
             }
         }
@@ -356,7 +358,7 @@ final class BoolSolver {
             }
         }
         result = operandStack.pop();
-        if(result==1) {
+        if (result == 1) {
             getMinterms().add(position);
         } else {
             getMaxterms().add(position);
@@ -397,7 +399,7 @@ final class BoolSolver {
     }
 
     private static int oppositeInRange(Integer start, Integer stop, Integer position) {
-        return (stop+start)-position;
+        return (stop + start) - position;
     }
 
     private void eval() {
@@ -406,8 +408,12 @@ final class BoolSolver {
         if (checkRPN()) System.exit(0);
         printTruthTable();
     }
+
     public void eval(String expression) {
         // Initialization phase:
+        if (!(expression != null && expression.length() != 0)) {
+            return;
+        }
         init(expression);
         // evalutate it:
         eval();
@@ -420,6 +426,7 @@ final class BoolSolver {
         setMaxterms(new ArrayList<Integer>());
         setMinterms(new ArrayList<Integer>());
     }
+
     public String eval(String expression, String name) {
         init(expression);
         if (tokenize()) System.exit(0);
@@ -431,32 +438,353 @@ final class BoolSolver {
             writer = new BufferedWriter(new OutputStreamWriter(
                     new FileOutputStream(name + ".tt"), "utf-8"));
             writer.write(temp);
-        } catch(IOException ioe) {
+        } catch (IOException ioe) {
             System.out.println("The system could not write to " + name + ".tt");
         } finally {
             try {
                 writer.close();
-            } catch(Exception ex) {
+            } catch (Exception ex) {
             }
         }
         return temp;
     }
-    public ArrayList<Token> printInfixTreeWP() {
-        return null;
+
+    /**
+     * Print the tree in infix notation and add only the nessecarry parenthesis.
+     *
+     * @param root      root of the subtree
+     * @param builder   the string we want to add to
+     * @param makeParen if parenthesis need to be added to this subtree
+     */
+    private void printHelper(Node root, StringBuilder builder, boolean makeParen) {
+        boolean righthigher = false, lefthigher = false;
+        if (root != null) {
+            // HERE: check if left/ right precedence is higher, lower:
+            if (root.getLeft() != null && root.getLeft().getType().isOperator() && (root.getLeft().getType().getPrecedence() > root.getType().getPrecedence())) {
+                lefthigher = true;
+            }
+            if (root.getRight() != null && root.getRight().getType().isOperator() && (root.getRight().getType().getPrecedence() > root.getType().getPrecedence())) {
+                righthigher = true;
+            }
+
+            if (makeParen) builder.append("(");
+            printHelper(root.getLeft(), builder, lefthigher);
+            builder.append(root.getToken().getValue()).append(" ");
+            printHelper(root.getRight(), builder, righthigher);
+            if (makeParen) builder.append(")");
+        }
     }
 
+    public String printInfixTreeWP() {
+        StringBuilder builder = new StringBuilder(32);
+        ExpressionTree tree = postfixToExprTree();
+        printHelper(tree.getRoot(), builder, false);
+        return builder.toString();
+    }
+
+    // TODO: this right here:
     public String simplify(String expression) {
         return null;
     }
+
+    public static int bitsSet(int number) {
+        Integer bits = 0;
+        while (number > 0) {
+            bits += (number & 1);
+            number >>= 1;
+        }
+        return bits;
+    }
+
+    public static int bitsSet(String number) {
+        Integer bits = 0;
+        for (int i = number.length() - 1; i >= 0; i--) {
+            bits += number.charAt(i) == '1' ? 1 : 0;
+        }
+
+        return bits.intValue();
+    }
+
+    public static String compare(String implicant1, String implicant2) {
+        int len = implicant1.length();
+        int pos = 0;
+        int differ = 0;
+        for (int i = 0; i < len; i++) {
+            if (implicant1.charAt(i) != implicant2.charAt(i)) {
+                pos = i;
+                differ++;
+            }
+        }
+        if (differ == 1) {
+            StringBuilder temp = new StringBuilder(implicant1);
+            temp.setCharAt(pos, '#');
+            return temp.toString();
+        }
+        return null;
+    }
+
+    /* https://inst.eecs.berkeley.edu/~cs282/sp02/readings/moses-simp.pdf
+    https://www.erpelstolz.at/gateway/qmo.html
+    https://www.allaboutcircuits.com/technical-articles/everything-about-the-quine-mccluskey-method/
+    */
     public String simplify() {
-        StringBuilder expression = new StringBuilder(16);
-        if(getVariables().size()==0) {
-            // Only literals, thus we just calculate the value and spit it out:
+        ArrayList<Term>[] minterms = new ArrayList[getVarmount() + 1];
+        // Initialize the list with arrays of Terms
+        for (int i = 0; i < getVarmount() + 1; i++) {
+            minterms[i] = new ArrayList<Term>();
+        }
+        // Fill the list with the minterms:
+        for (int i = 0; i < getMinterms().size(); i++) {
+            Integer minterm = getMinterms().get(i);
+            minterms[bitsSet(minterm)].add(new Term(minterm, getVarmount()));
+        }
+
+        ArrayList<Term>[] temp = minterms;
+        // Perform mccluskey method until there is not a single thing to be done, after that
+        // possibly use the quine method to find the prime implicants:
+        for (int j = 0; temp != null; j++) {
+            temp = mccStep(temp);
+            if (arraysEqual(temp, minterms)) {
+                break;
+            }
+            minterms = temp;
+        }
+
+        return quine(minterms);
+    }
+
+    // Here we use the quine method to find the dominant prime-implicants:
+    private String quine(ArrayList<Term>[] terms) {
+        Integer termcount = 0;
+        Integer mintermpos = 0;
+        Integer primepos = 0;
+        Term temp = null;
+        ArrayList<Term> templist = new ArrayList<Term>();
+
+        for (int i = 0; i < terms.length; i++) {
+            termcount += terms[i].size();
+        }
+        // 1 Dim: minterms,
+        // 2 Dim: prime-implicants,
+        boolean[][] quineField = new boolean[getMinterms().size()][termcount];
+
+        for (int i = 0; i < terms.length; i++) {
+            for (int j = 0; j < terms[i].size(); j++) {
+                temp = terms[i].get(j);
+                String[] split = temp.getRepresentedTerms().split(", ");
+                for (String inner : split) {
+                    mintermpos = getPosition(Integer.parseInt(inner));
+                    quineField[mintermpos][primepos] = true;
+                    if(!templist.contains(temp)) {
+                        templist.add(temp);
+                    }
+                }
+                primepos++;
+            }
+        }
+        ArrayList<Integer> coreprimeimplicantpos = new ArrayList<>();
+        // Check for core prime-implicants:
+        for (int i = 0; i < quineField.length; i++) {
+            if ((primepos = isCorePrimeImplicant(quineField[i])) != -1) {
+                // It is a core prime-implicant
+                if (!coreprimeimplicantpos.contains(primepos)) {
+                    coreprimeimplicantpos.add(primepos);
+                }
+            }
+        }
+        StringBuilder builder = new StringBuilder();
+        for(int i = 0 ; i < templist.size() ; i++) {
+            builder.append(varBackToString(templist.get(i).binaryRepresentation));
+            if(i != templist.size() -1) {
+                builder.append("+");
+            }
+        }
+        return builder.toString();
+    }
+    private String varBackToString(String chewedvars) {
+        StringBuilder builder = new StringBuilder();
+        //"#01"
+        for(int i = 0; i < getVariables().size();i++) {
+            if(chewedvars.charAt(i) == '#') {
+                continue;
+            } else if(chewedvars.charAt(i) == 0) {
+                builder.append("!");
+            }
+            builder.append(((OperandToken)getVariables().get(i)).getValue());
+            if(i!=(getVariables().size()-1) && chewedvars.charAt(i+1)!='#') {
+                builder.append("&");
+            }
+        }
+
+        return builder.toString();
+    }
+
+    private Integer getPosition(Integer number) {
+        Integer temp = -1;
+        Integer length = getMinterms().size();
+        for (int i = 0; i < length; i++) {
+            temp = number == getMinterms().get(i) ? i : temp;
+        }
+        return temp;
+    }
+
+    private Boolean contains(ArrayList<Term>[] terms, Term term) {
+        for (int i = 0; i < terms.length; i++) {
+            for (int j = 0; j < terms[i].size(); j++) {
+                Term temp = terms[i].get(j);
+                if (temp.binaryRepresentationEquals(term)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private Boolean arraysEqual(ArrayList<Term>[] termsA, ArrayList<Term>[] termsB) {
+        if (termsA.length != termsB.length) {
+            return false;
         } else {
-            // There are variables, thus we use quine-mcclusky to solve this:
+            for (int i = 0; i < termsA.length; i++) {
+                if (termsA[i].size() != termsB[i].size()) {
+                    return false;
+                }
+                for (int j = 0; j < termsA[i].size(); j++) {
+                    if (termsA[i].get(j) != termsB[i].get(j)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    private Integer isCorePrimeImplicant(boolean[] dimension) {
+        Integer count = 0;
+        Integer position = 0;
+        for (int i = 0; i < dimension.length; i++) {
+            if (dimension[i] == true) {
+                position = i;
+                count++;
+            }
+        }
+        if (count == 1) {
+            return position;
+        }
+        return -1;
+
+    }
+
+    /**
+     * Performs a single quine step, combining minterms into implicants to find the prime implicants.
+     *
+     * @return new arraylist, if there was a change, or null, if there was not a single change:
+     */
+    private ArrayList<Term>[] mccStep(ArrayList<Term>[] minterms) {
+        ArrayList<Term>[] output = new ArrayList[minterms.length];
+        Term temp = null;
+        // Initialize the list:
+        for (int i = 0; i < getVarmount() + 1; i++) {
+            output[i] = new ArrayList<Term>();
+        }
+
+        for (int i = 1; i < minterms.length; i++) {
+            // Compare elemets of i-1 with all elements of i+1;
+            for (int j = 0; j < minterms[i - 1].size(); j++) {
+                for (int k = 0; k < minterms[i].size(); k++) {
+                    // If the items only differ by one bit, combine them and add to the new list:
+                    if ((temp = minterms[i - 1].get(j).combine(minterms[i].get(k))) != null && !contains(output, temp)) {
+                        // They combine, thus we get the new Term object back:
+                        output[bitsSet(temp.getBinaryRepresentation())].add(temp);
+                    }
+                    // They do not combine, thus we get a null back:
+                }
+            }
+        }
+        // Check the items that are still marked as false:
+        for (int i = 0; i < minterms.length; i++) {
+            for (int j = 0; j < minterms[i].size(); j++) {
+                temp = minterms[i].get(j);
+                if (!temp.getWasAdded()) {
+                    output[bitsSet(temp.getBinaryRepresentation())].add(temp);
+                } else {
+                    // There was a change, thus we set hadChange to true;
+                }
+            }
+        }
+        return output;
+    }
+
+    class Term {
+        private String binaryRepresentation;
+        private String representedTerms;
+        private Boolean wasAdded;
+
+        public Term(String binaryRepresentation, String representedTerms) {
+            setBinaryRepresentation(binaryRepresentation);
+            setRepresentedTerms(representedTerms);
+            setWasAdded(false);
+        }
+
+        public Term(Integer variableNumber, Integer length) {
+            this(BoolSolver.intToString(variableNumber, length), Integer.toString(variableNumber));
 
         }
-        return expression.toString();
+
+        @Override
+        public String toString() {
+            return getBinaryRepresentation();
+        }
+
+
+        public String getBinaryRepresentation() {
+            return binaryRepresentation;
+        }
+
+        public void setBinaryRepresentation(String binaryRepresentation) {
+            this.binaryRepresentation = binaryRepresentation;
+        }
+
+        public String getRepresentedTerms() {
+            return representedTerms;
+        }
+
+        public void setRepresentedTerms(String representedTerms) {
+            this.representedTerms = representedTerms;
+        }
+
+        public Boolean getWasAdded() {
+            return wasAdded;
+        }
+
+        public void setWasAdded(Boolean wasAdded) {
+            this.wasAdded = wasAdded;
+        }
+
+        public String combineIdentifier(Term term) {
+            return getRepresentedTerms() + ", " + term.getRepresentedTerms();
+        }
+
+        public Term combine(Term term) {
+            String temp = null;
+            if (null != (temp = compare(getBinaryRepresentation(), term.getBinaryRepresentation()))) {
+                this.setWasAdded(true);
+                term.setWasAdded(true);
+                return new Term(temp, combineIdentifier(term));
+            }
+            return null;
+        }
+
+        public Boolean equalRepresentation(Term term) {
+            return this.getBinaryRepresentation().equals(term.getBinaryRepresentation());
+        }
+
+        public Boolean binaryRepresentationEquals(Term term) {
+            return getBinaryRepresentation().equals(term.getBinaryRepresentation());
+        }
+
+        public Boolean contains(Term term) {
+            return getRepresentedTerms().contains(term.getRepresentedTerms());
+        }
     }
 }
 
