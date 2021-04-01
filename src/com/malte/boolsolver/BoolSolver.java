@@ -603,11 +603,11 @@ final class BoolSolver {
     }
     private String varBackToString(String chewedvars) {
         StringBuilder builder = new StringBuilder();
-        //"#01"
         for(int i = 0; i < getVariables().size();i++) {
             if(chewedvars.charAt(i) == '#') {
                 continue;
-            } else if(chewedvars.charAt(i) == 0) {
+            }
+            if(chewedvars.charAt(i) == '0') {
                 builder.append("!");
             }
             builder.append(((OperandToken)getVariables().get(i)).getValue());
