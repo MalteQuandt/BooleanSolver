@@ -528,6 +528,20 @@ final class BoolSolver {
     https://www.allaboutcircuits.com/technical-articles/everything-about-the-quine-mccluskey-method/
     */
     public String simplify() {
+        // First, check two cases that crash the algorithm:
+        if(getVariables().size()==0) {
+            // There are no variables, thus the simplified form is definitely just the evaluation:
+            return Integer.toString(evalRPN(0));
+        }else if(getVariables().size()==1) {
+            // There is only 1 Variable, we can not use the conventional quine-mcclusky algorithm
+            if(evalRPN(0)==1) {
+                // The var is negated:
+                return "!" + getVariables().get(0).getValue().toString();
+            } else {
+                // The var is not negated:
+                return getVariables().get(0).getValue().toString();
+            }
+        }
         ArrayList<Term>[] minterms = new ArrayList[getVarmount() + 1];
         // Initialize the list with arrays of Terms
         for (int i = 0; i < getVarmount() + 1; i++) {
@@ -538,6 +552,7 @@ final class BoolSolver {
             Integer minterm = getMinterms().get(i);
             minterms[bitsSet(minterm)].add(new Term(minterm, getVarmount()));
         }
+        System.out.println("Mccluskey...");
 
         ArrayList<Term>[] temp = minterms;
         // Perform mccluskey method until there is not a single thing to be done, after that
@@ -546,13 +561,62 @@ final class BoolSolver {
             temp = mccStep(temp);
             if (arraysEqual(temp, minterms)) {
                 break;
+
             }
             minterms = temp;
         }
 
+        System.out.println("Quine...");
         return quine(minterms);
     }
+    /**
+     * Performs a single quine step, combining minterms into implicants to find the prime implicants.
+     *
+     * @return new arraylist, if there was a change, or null, if there was not a single change:
+     */
+    private ArrayList<Term>[] mccStep(ArrayList<Term>[] minterms) {
+        ArrayList<Term>[] output = new ArrayList[minterms.length];
+        Term temp = null;
+        // Initialize the list:
+        for (int i = 0; i < getVarmount() + 1; i++) {
+            output[i] = new ArrayList<Term>();
+        }
+        long startTime = System.currentTimeMillis();
+        for (int i = 1; i < minterms.length; i++) {
+            // Compare elemets of i-1 with all elements of i+1;
+            for (int j = 0; j < minterms[i - 1].size(); j++) {
+                for (int k = 0; k < minterms[i].size(); k++) {
+                    // If the items only differ by one bit, combine them and add to the new list:
+                    if ((temp = minterms[i - 1].get(j).combine(minterms[i].get(k))) != null && !contains(output, temp)) {
+                        // They combine, thus we get the new Term object back:
+                        output[bitsSet(temp.getBinaryRepresentation())].add(temp);
+                    }
+                    // They do not combine, thus we get a null back:
+                }
+            }
+        }
+        long endTime = System.currentTimeMillis();
+        System.out.println("Compare i-1 with i for each two abreast lists: " + (endTime - startTime));
+        startTime = System.currentTimeMillis();
+        // Check the items that are still marked as false:
+        for (int i = 0; i < minterms.length; i++) {
+            for (int j = 0; j < minterms[i].size(); j++) {
+                temp = minterms[i].get(j);
+                if (!temp.getWasAdded()) {
+                    output[bitsSet(temp.getBinaryRepresentation())].add(temp);
+                } else {
+                    // There was a change, thus we set hadChange to true;
+                }
+            }
+        }
+        endTime = System.currentTimeMillis();
+        System.out.println("Check the list if some of them have not been included " + (endTime - startTime));
+        return output;
+    }
 
+    private ArrayList<Term>[] mccStepOptimized(ArrayList<Term>[] minterms) {
+        return null;
+    }
     // Here we use the quine method to find the dominant prime-implicants:
     private String quine(ArrayList<Term>[] terms) {
         Integer termcount = 0;
@@ -574,6 +638,9 @@ final class BoolSolver {
                 String[] split = temp.getRepresentedTerms().split(", ");
                 for (String inner : split) {
                     mintermpos = getPosition(Integer.parseInt(inner));
+                    if(mintermpos == -1) {
+                        continue;
+                    }
                     quineField[mintermpos][primepos] = true;
                     if(!templist.contains(temp)) {
                         templist.add(temp);
@@ -596,11 +663,12 @@ final class BoolSolver {
         for(int i = 0 ; i < templist.size() ; i++) {
             builder.append(varBackToString(templist.get(i).binaryRepresentation));
             if(i != templist.size() -1) {
-                builder.append("+");
+                builder.append(" + ");
             }
         }
         return builder.toString();
     }
+    //
     private String varBackToString(String chewedvars) {
         StringBuilder builder = new StringBuilder();
         for(int i = 0; i < getVariables().size();i++) {
@@ -611,11 +679,13 @@ final class BoolSolver {
                 builder.append("!");
             }
             builder.append(((OperandToken)getVariables().get(i)).getValue());
-            if(i!=(getVariables().size()-1) && chewedvars.charAt(i+1)!='#') {
-                builder.append("&");
+            if(i!=(getVariables().size()-1)) {
+                builder.append(" * ");
             }
         }
-
+        if(builder.charAt(builder.length()-2) == '*') {
+            builder.setLength(builder.length() - 3);
+        }
         return builder.toString();
     }
 
@@ -674,50 +744,11 @@ final class BoolSolver {
 
     }
 
-    /**
-     * Performs a single quine step, combining minterms into implicants to find the prime implicants.
-     *
-     * @return new arraylist, if there was a change, or null, if there was not a single change:
-     */
-    private ArrayList<Term>[] mccStep(ArrayList<Term>[] minterms) {
-        ArrayList<Term>[] output = new ArrayList[minterms.length];
-        Term temp = null;
-        // Initialize the list:
-        for (int i = 0; i < getVarmount() + 1; i++) {
-            output[i] = new ArrayList<Term>();
-        }
-
-        for (int i = 1; i < minterms.length; i++) {
-            // Compare elemets of i-1 with all elements of i+1;
-            for (int j = 0; j < minterms[i - 1].size(); j++) {
-                for (int k = 0; k < minterms[i].size(); k++) {
-                    // If the items only differ by one bit, combine them and add to the new list:
-                    if ((temp = minterms[i - 1].get(j).combine(minterms[i].get(k))) != null && !contains(output, temp)) {
-                        // They combine, thus we get the new Term object back:
-                        output[bitsSet(temp.getBinaryRepresentation())].add(temp);
-                    }
-                    // They do not combine, thus we get a null back:
-                }
-            }
-        }
-        // Check the items that are still marked as false:
-        for (int i = 0; i < minterms.length; i++) {
-            for (int j = 0; j < minterms[i].size(); j++) {
-                temp = minterms[i].get(j);
-                if (!temp.getWasAdded()) {
-                    output[bitsSet(temp.getBinaryRepresentation())].add(temp);
-                } else {
-                    // There was a change, thus we set hadChange to true;
-                }
-            }
-        }
-        return output;
-    }
-
     class Term {
         private String binaryRepresentation;
         private String representedTerms;
         private Boolean wasAdded;
+        private Integer setBits;
 
         public Term(String binaryRepresentation, String representedTerms) {
             setBinaryRepresentation(binaryRepresentation);
@@ -784,6 +815,14 @@ final class BoolSolver {
 
         public Boolean contains(Term term) {
             return getRepresentedTerms().contains(term.getRepresentedTerms());
+        }
+
+        public Integer getSetBits() {
+            return setBits;
+        }
+
+        public void setSetBits(Integer setBits) {
+            this.setBits = setBits;
         }
     }
 }
