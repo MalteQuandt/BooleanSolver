@@ -9,9 +9,8 @@ BoolSolver identifier = new BoolSolver(stringExpression);
 
 This should print a truth table to the console with the variables that were in the string from left to right being output in the truth table in the opposite order.
 
-### Challenge:
-Try to break this algorithm! Use the rules of boolean expressions to find one that is 1. valid, and 2. my code does not handle in any correct way.
 
+If you find a case i have not handled, please write me a message so that i can fix this!
 
 ```ebnf
 EXP    := TERM {'+' TERM}
