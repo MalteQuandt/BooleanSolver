@@ -422,7 +422,7 @@ final class BoolSolver {
     private void init(String expression) {
         setExpression(expression);
         setVarmount(0);
-        setVariables(new ArrayList<Token>());
+        setVariables(new ArrayList<Token<>>());
         setMaxterms(new ArrayList<Integer>());
         setMinterms(new ArrayList<Integer>());
     }
@@ -450,7 +450,7 @@ final class BoolSolver {
     }
 
     /**
-     * Print the tree in infix notation and add only the nessecarry parenthesis.
+     * Print the tree in infix notation and add only the necessary parenthesis.
      *
      * @param root      root of the subtree
      * @param builder   the string we want to add to

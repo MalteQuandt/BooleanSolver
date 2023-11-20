@@ -1,15 +1,15 @@
 package com.malte.boolsolver;
 
 public interface Token<V> {
-    public TokenType getType();
+    TokenType getType();
 
-    public V getValue();
+    V getValue();
 
-    public Integer getPosition();
+    Integer getPosition();
 
-    public Boolean equals(Token token);
+    Boolean equals(Token<?> token);
 
-    public String toString();
+    String toString();
 }
 
 class OperandToken implements Token<String> {
@@ -30,7 +30,7 @@ class OperandToken implements Token<String> {
     }
 
     @Override
-    public Boolean equals(Token token) {
+    public Boolean equals(Token<?> token) {
         return token instanceof OperandToken && token.getType() == getType() && token.getPosition().intValue() == getPosition().intValue() && getValue().equals(token.getValue());
     }
 
@@ -85,7 +85,7 @@ class OperatorToken implements Token<TokenType> {
     }
 
     @Override
-    public Boolean equals(Token token) {
+    public Boolean equals(Token<?> token) {
         return token instanceof OperatorToken && token.getType() == getType() && token.getPosition().intValue() == getPosition().intValue() && token.getValue().equals(getValue());
     }
 

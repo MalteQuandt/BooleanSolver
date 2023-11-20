@@ -9,7 +9,7 @@ public class ExpressionTree {
         return root;
     }
 
-    public void setRoot(Token tok) {
+    public void setRoot(Token<?> tok) {
         this.root = new Node(tok);
     }
 
@@ -49,7 +49,7 @@ public class ExpressionTree {
         }
     }
 
-    public Boolean add(Token tok) {
+    public Boolean add(Token<?> tok) {
         if (this.getRoot() == null) {
             // No root, thus trying to access it would give a nasty null-pointer exception:
             setRoot(tok);
@@ -77,9 +77,9 @@ class Node {
 
     private Node right;
     private Node left;
-    private Token token;
+    private Token<?> token;
 
-    public Node(Token token) {
+    public Node(Token<?> token) {
         setToken(token);
         setLeft(null);
         setRight(null);
@@ -101,11 +101,11 @@ class Node {
         this.left = left;
     }
 
-    public Token getToken() {
+    public Token<?> getToken() {
         return token;
     }
 
-    public void setToken(Token token) {
+    public void setToken(Token<?> token) {
         this.token = token;
     }
 
@@ -114,7 +114,7 @@ class Node {
     }
 
     // It finally works!!!
-    public Boolean insert(Token tok) {
+    public Boolean insert(Token<?> tok) {
         if(this.getType().isTerminal()) {
             return false;
         }
@@ -130,8 +130,8 @@ class Node {
             if(this.getType().isUnaryOperator()){return false;}
             this.setLeft(new Node(tok));
             return true;
-        } else {
-            if(this.getLeft().insert(tok)){return true;}
+        } else if(this.getLeft().insert(tok)){
+            return true;
         }
         // Lastly: return false:
         return false;
